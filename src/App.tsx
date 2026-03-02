@@ -1,83 +1,100 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { parse } from "./dsl";
+import { codegen } from "./excalidraw/codegen";
+import { getFiles } from "./excalidraw/files";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Ex = any;
+const DEFAULT_DSL = `screen Suchen (smartphone):
+  searchbar "Beschreibe wonach du suchst"
+  keyboard
 
-const elements: Ex[] = [
-  {
-    id: "screen-1",
-    type: "rectangle",
-    x: 100,
-    y: 100,
-    width: 220,
-    height: 380,
-    angle: 0,
-    strokeColor: "#000000",
-    backgroundColor: "#f8f8f8",
-    fillStyle: "solid",
-    strokeWidth: 2,
-    strokeStyle: "solid",
-    roughness: 2,
-    opacity: 100,
-    groupIds: [],
-    frameId: null,
-    roundness: null,
-    seed: 42,
-    version: 1,
-    versionNonce: 1,
-    isDeleted: false,
-    boundElements: null,
-    updated: 1,
-    link: null,
-    locked: false,
-  },
-  {
-    id: "text-1",
-    type: "text",
-    x: 110,
-    y: 110,
-    width: 200,
-    height: 30,
-    angle: 0,
-    strokeColor: "#000000",
-    backgroundColor: "transparent",
-    fillStyle: "solid",
-    strokeWidth: 1,
-    strokeStyle: "solid",
-    roughness: 1,
-    opacity: 100,
-    groupIds: [],
-    frameId: null,
-    roundness: null,
-    seed: 43,
-    version: 1,
-    versionNonce: 1,
-    isDeleted: false,
-    boundElements: null,
-    updated: 1,
-    link: null,
-    locked: false,
-    text: "Suchen",
-    fontSize: 20,
-    fontFamily: 3,
-    textAlign: "left",
-    verticalAlign: "top",
-    baseline: 18,
-    containerId: null,
-    originalText: "Suchen",
-    lineHeight: 1.25,
-  },
-];
+screen Ergebnisse (smartphone):
+  searchbar "Lernmethoden"
+  card "Match 94% — Die Pomodoro-Technik..."
+  card "Match 84% — Spaced Repetition..."
+
+screen Übersicht (desktop):
+  searchbar "Volltextsuche"
+  card "Alle Quellen"
+  card "Zitate & Notizen"
+  card "KI-Analyse"
+  button "Export"
+`;
 
 export default function App() {
+  const [dsl, setDsl] = useState(DEFAULT_DSL);
+
+  const elements = useMemo(() => {
+    try {
+      const ast = parse(dsl);
+      return codegen(ast);
+    } catch {
+      return [];
+    }
+  }, [dsl]);
+
+  const files = useMemo(() => getFiles(), []);
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <Excalidraw
-        initialData={{ elements, appState: { viewBackgroundColor: "#ffffff" } }}
-      />
+    <div style={{ display: "flex", width: "100vw", height: "100vh", fontFamily: "monospace" }}>
+      <div style={{ width: "360px", display: "flex", flexDirection: "column", borderRight: "1px solid #ddd" }}>
+        <div style={{
+          padding: "10px 14px",
+          fontSize: 12,
+          fontWeight: "bold",
+          background: "#f8f8f8",
+          borderBottom: "1px solid #ddd",
+          letterSpacing: 1,
+          color: "#666",
+        }}>
+          wireflow DSL
+        </div>
+        <div style={{
+          padding: "6px 14px",
+          fontSize: 11,
+          background: "#f0f0f0",
+          borderBottom: "1px solid #ddd",
+          color: "#888",
+          lineHeight: 1.5,
+        }}>
+          Syntax: <code style={{ color: "#333" }}>screen Name (device):</code>
+          <br />
+          Geräte: <code style={{ color: "#333" }}>smartphone</code> · <code style={{ color: "#333" }}>desktop</code>
+        </div>
+        <textarea
+          value={dsl}
+          onChange={e => setDsl(e.target.value)}
+          style={{
+            flex: 1,
+            padding: "14px",
+            fontSize: 13,
+            lineHeight: 1.6,
+            border: "none",
+            outline: "none",
+            resize: "none",
+            background: "#1e1e1e",
+            color: "#d4d4d4",
+            fontFamily: "monospace",
+          }}
+          spellCheck={false}
+        />
+      </div>
+
+      <div style={{ flex: 1 }}>
+        <Excalidraw
+          key={JSON.stringify(elements)}
+          initialData={{
+            elements,
+            appState: {
+              viewBackgroundColor: "#fafafa",
+              currentItemFontFamily: 3,
+            },
+            files,
+          }}
+          viewModeEnabled={true}
+        />
+      </div>
     </div>
   );
 }
